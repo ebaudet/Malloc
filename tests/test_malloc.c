@@ -4,12 +4,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef USE_FT_ALLOC
+# include "malloc.h"
+# define TEST_MALLOC ft_malloc
+# define TEST_FREE ft_free
+# define TEST_NAME "ft_malloc/ft_free"
+#else
+# define TEST_MALLOC malloc
+# define TEST_FREE free
+# define TEST_NAME "malloc/free"
+#endif
+
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
 
 static int	g_failures;
+static int	g_checks;
 
 static void	check(int condition, const char *message)
 {
+	++g_checks;
 	if (!condition)
 	{
 		fprintf(stderr, "FAIL: %s\n", message);
@@ -23,27 +36,27 @@ static void	test_basic_allocations(void)
 	void	*zero;
 	size_t	i;
 
-	str = malloc(32);
-	check(str != NULL, "malloc(32) returns a pointer");
+	str = TEST_MALLOC(32);
+	check(str != NULL, TEST_NAME " allocates 32 bytes");
 	if (str != NULL)
 	{
 		strcpy(str, "hello malloc");
 		check(strcmp(str, "hello malloc") == 0, "allocated memory is writable");
-		free(str);
+		TEST_FREE(str);
 	}
-	zero = malloc(0);
-	free(zero);
+	zero = TEST_MALLOC(0);
+	TEST_FREE(zero);
 	i = 0;
 	while (i < 128)
 	{
-		void *ptr = malloc(i + 1);
-		check(ptr != NULL, "small allocation returns a pointer");
+		void *ptr = TEST_MALLOC(i + 1);
+		check(ptr != NULL, TEST_NAME " returns a pointer for small allocation");
 		if (ptr != NULL)
 			memset(ptr, (int)i, i + 1);
-		free(ptr);
+		TEST_FREE(ptr);
 		++i;
 	}
-	free(NULL);
+	TEST_FREE(NULL);
 }
 
 static void	test_alignment(void)
@@ -57,11 +70,12 @@ static void	test_alignment(void)
 		void		*ptr;
 		uintptr_t	addr;
 
-		ptr = malloc(sizes[i]);
-		check(ptr != NULL, "malloc returns non-null for alignment test");
+		ptr = TEST_MALLOC(sizes[i]);
+		check(ptr != NULL, TEST_NAME " returns non-null for alignment test");
 		addr = (uintptr_t)ptr;
-		check(addr % sizeof(max_align_t) == 0, "malloc pointer is max_align_t aligned");
-		free(ptr);
+		check(addr % sizeof(max_align_t) == 0,
+			TEST_NAME " pointer is max_align_t aligned");
+		TEST_FREE(ptr);
 		++i;
 	}
 }
@@ -77,8 +91,8 @@ static void	test_many_allocations_keep_contents(void)
 	while (i < COUNT)
 	{
 		sizes[i] = ((i * 37) % 4096) + 1;
-		ptrs[i] = malloc(sizes[i]);
-		check(ptrs[i] != NULL, "mixed allocation returns a pointer");
+		ptrs[i] = TEST_MALLOC(sizes[i]);
+		check(ptrs[i] != NULL, TEST_NAME " returns a pointer for mixed allocation");
 		if (ptrs[i] != NULL)
 			memset(ptrs[i], (int)(i & 0xff), sizes[i]);
 		++i;
@@ -109,10 +123,50 @@ static void	test_many_allocations_keep_contents(void)
 	while (i > 0)
 	{
 		--i;
-		free(ptrs[i]);
+		TEST_FREE(ptrs[i]);
 	}
 }
 
+static void	test_free_reuse_pattern(void)
+{
+	enum { COUNT = 96 };
+	void	*ptrs[COUNT];
+	size_t	i;
+
+	i = 0;
+	while (i < COUNT)
+	{
+		ptrs[i] = TEST_MALLOC(24 + (i % 17));
+		check(ptrs[i] != NULL, TEST_NAME " allocates reusable small blocks");
+		if (ptrs[i] != NULL)
+			memset(ptrs[i], 0xa5, 24 + (i % 17));
+		++i;
+	}
+	i = 0;
+	while (i < COUNT)
+	{
+		if (i % 2 == 0)
+			TEST_FREE(ptrs[i]);
+		++i;
+	}
+	i = 0;
+	while (i < COUNT / 2)
+	{
+		void *ptr = TEST_MALLOC(32);
+		check(ptr != NULL, TEST_NAME " allocates after freeing alternating blocks");
+		TEST_FREE(ptr);
+		++i;
+	}
+	i = 0;
+	while (i < COUNT)
+	{
+		if (i % 2 != 0)
+			TEST_FREE(ptrs[i]);
+		++i;
+	}
+}
+
+#ifndef USE_FT_ALLOC
 static void	test_realloc_behavior(void)
 {
 	char	*ptr;
@@ -145,7 +199,9 @@ static void	test_realloc_behavior(void)
 	check(from_null != NULL, "realloc(NULL, size) behaves like malloc");
 	free(from_null);
 }
+#endif
 
+#ifndef USE_FT_ALLOC
 static void	test_calloc_behavior(void)
 {
 	size_t	*values;
@@ -169,6 +225,7 @@ static void	test_calloc_behavior(void)
 	check(overflow == NULL, "calloc detects multiplication overflow");
 	free(overflow);
 }
+#endif
 
 static void	test_large_allocation(void)
 {
@@ -176,8 +233,8 @@ static void	test_large_allocation(void)
 	char	*ptr;
 
 	size = 1024 * 1024;
-	ptr = malloc(size);
-	check(ptr != NULL, "large allocation returns a pointer");
+	ptr = TEST_MALLOC(size);
+	check(ptr != NULL, TEST_NAME " returns a pointer for large allocation");
 	if (ptr != NULL)
 	{
 		ptr[0] = 'a';
@@ -185,7 +242,7 @@ static void	test_large_allocation(void)
 		ptr[size - 1] = 'c';
 		check(ptr[0] == 'a' && ptr[size / 2] == 'b' && ptr[size - 1] == 'c',
 			"large allocation is writable at beginning, middle, and end");
-		free(ptr);
+		TEST_FREE(ptr);
 	}
 }
 
@@ -194,14 +251,19 @@ int	main(void)
 	test_basic_allocations();
 	test_alignment();
 	test_many_allocations_keep_contents();
+	test_free_reuse_pattern();
+#ifndef USE_FT_ALLOC
 	test_realloc_behavior();
 	test_calloc_behavior();
+#endif
 	test_large_allocation();
 	if (g_failures != 0)
 	{
-		fprintf(stderr, "%d malloc test(s) failed\n", g_failures);
+		fprintf(stderr, "ERROR: %s: %d/%d checks passed, %d failed\n",
+			TEST_NAME, g_checks - g_failures, g_checks, g_failures);
 		return (1);
 	}
-	printf("malloc behavior tests passed\n");
+	printf("SUCCESS: %s: %d/%d checks passed\n", TEST_NAME, g_checks,
+		g_checks);
 	return (0);
 }

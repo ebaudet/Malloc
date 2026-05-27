@@ -37,7 +37,8 @@ t_block			*get_malloc(void)
 
 
 	if (!ptr)
-		ptr = mmap(0, PAGE, PROT_WRITE | PROT_READ, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
+		ptr = mmap(0, TINY_BLOCK * PAGE, PROT_WRITE | PROT_READ,
+				MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 	return (ptr);
 }
 
@@ -50,7 +51,24 @@ void			*new_block(t_block *ptr, size_t type, size_t size)
 		return (NULL);
 	ft_bzero(ptr, size);
 	ptr->type = type;
+	ptr->total = size;
+	ptr->data = (char *)ptr + sizeof(t_block);
 	return (ptr);
+}
+
+static t_block	*add_block(t_block *ptr, size_t type, size_t size)
+{
+	t_block		*current;
+	t_block		*block;
+
+	block = new_block(NULL, type, size);
+	if (!block)
+		return (NULL);
+	current = ptr;
+	while (current->next)
+		current = current->next;
+	current->next = block;
+	return (block);
 }
 
 static int		index_val(t_block *ptr)
@@ -91,14 +109,24 @@ static void		*malloc_tiny(t_block *ptr, size_t size)
 
 static void		*malloc_small(t_block *ptr, size_t size)
 {
-	(void)ptr;
-	return (new_block(NULL, SMALL, size + sizeof(t_block)));
+	t_block		*block;
+
+	block = add_block(ptr, SMALL, size + sizeof(t_block));
+	if (!block)
+		return (NULL);
+	block->size[0] = size;
+	return (block->data);
 }
 
 static void		*malloc_large(t_block *ptr, size_t size)
 {
-	(void)ptr;
-	return (new_block(NULL, LARGE, size + sizeof(t_block)));
+	t_block		*block;
+
+	block = add_block(ptr, LARGE, size + sizeof(t_block));
+	if (!block)
+		return (NULL);
+	block->size[0] = size;
+	return (block->data);
 }
 
 void			*ft_malloc(size_t size)
@@ -109,8 +137,12 @@ void			*ft_malloc(size_t size)
 	if (!ptr)
 	{
 		ptr = get_malloc();
-		ft_bzero(ptr, PAGE);
+		if (ptr == MAP_FAILED)
+			return (NULL);
+		ft_bzero(ptr, TINY_BLOCK * PAGE);
 		ptr->type = TINY;
+		ptr->total = TINY_BLOCK * PAGE;
+		ptr->data = (char *)ptr + sizeof(t_block);
 	}
 	if (size <= 0)
 		return (NULL);
@@ -126,7 +158,6 @@ void			*ft_malloc(size_t size)
 	return (NULL);
 
 }
-
 
 void	show_alloc_mem() {
 

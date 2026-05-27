@@ -43,6 +43,8 @@ typedef struct		s_block
 }					t_block;
 
 void				*ft_malloc(size_t size);
+void				ft_free(void *ptr);
+t_block				*get_malloc(void);
 void				show_alloc_mem(void);
 
 #endif

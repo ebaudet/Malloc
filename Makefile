@@ -19,7 +19,7 @@ NAME	= libft_malloc_$(HOSTTYPE).so
 LINK	= libft_malloc.so
 
 CC		= cc
-FILES	= ft_malloc.c
+FILES	= ft_malloc.c ft_free.c
 
 SRCS	= $(addprefix srcs/, $(FILES))
 OBJS	= $(SRCS:srcs/%.c=.obj/%.o)

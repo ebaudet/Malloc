@@ -178,20 +178,22 @@ make test
 The test runner:
 
 - Builds `libft_malloc.so`.
-- Compiles `tests/test_malloc.c` into `tests/test_malloc`.
-- Runs the test binary once with the system allocator from `stdlib.h`.
-- Checks that `libft_malloc.so` exports the required replacement symbols.
-- Runs the same binary again with the custom allocator preloaded, once the
-  required symbols are available.
+- Compiles `tests/test_malloc.c` into a libc reference binary.
+- Runs the reference binary with `malloc` and `free` from `stdlib.h`.
+- Checks that `libft_malloc.so` exports `ft_malloc` and `ft_free`.
+- Compiles the same tests again with `USE_FT_ALLOC`, so the allocation calls use
+  `ft_malloc` and `ft_free`.
+- Runs the project allocator binary and compares the same malloc/free behavior.
 
 The current tests cover:
 
-- Basic `malloc`, write, read, and `free` behavior.
+- Basic allocation, write, read, and free behavior.
 - `malloc(0)`.
 - `free(NULL)`.
 - Pointer alignment.
 - Many mixed-size allocations kept alive at the same time.
 - Content preservation across many allocations.
+- Freeing alternating blocks and allocating again afterward.
 - `realloc` growth.
 - `realloc` shrink.
 - `realloc(NULL, size)`.
@@ -199,46 +201,35 @@ The current tests cover:
 - `calloc` multiplication overflow detection.
 - Large allocation writes at the beginning, middle, and end of the block.
 
+The `realloc` and `calloc` cases currently run only against libc because
+`ft_realloc` and `ft_calloc` are not implemented yet.
+
 Current expected result:
 
 ```sh
 make test
 ```
 
-The libc reference run should pass:
+Expected output:
 
 ```text
 == libc reference run ==
-malloc behavior tests passed
-```
+SUCCESS: malloc/free: 952/952 checks passed
+SUCCESS: libc reference run
 
-The project allocator run currently fails before preload because the shared
-library does not yet export the standard allocator symbols:
-
-```text
 == exported allocator symbols ==
-missing symbol: malloc
-missing symbol: free
-missing symbol: realloc
-libft_malloc.so cannot replace the stdlib allocator yet.
+found symbol: ft_malloc
+found symbol: ft_free
+SUCCESS: exported allocator symbols
+
+== ft_malloc/ft_free comparison run ==
+SUCCESS: ft_malloc/ft_free: 816/816 checks passed
+SUCCESS: ft_malloc/ft_free comparison run
+
+SUCCESS: all test suites passed
 ```
 
-After `malloc`, `free`, and `realloc` are implemented and exported, the same
-test command should continue into the preload run.
-
-On Linux, the runner uses:
-
-```sh
-LD_PRELOAD=./libft_malloc.so ./tests/test_malloc
-```
-
-On macOS, the runner uses:
-
-```sh
-DYLD_LIBRARY_PATH=. DYLD_INSERT_LIBRARIES=./libft_malloc.so ./tests/test_malloc
-```
-
-The generated test binary is ignored by Git through `.gitignore`.
+The generated test binaries are ignored by Git through `.gitignore`.
 
 ## Implementation Checklist
 
