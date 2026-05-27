@@ -6,6 +6,8 @@ The goal of this project is to implement a shared library that provides a
 malloc-family allocator and can be loaded instead of the system allocator for
 testing and debugging allocation behavior.
 
+> Understand how malloc does work [there](https://cmmon.medium.com/chow-does-a-malloc-work-45ba5a6fbf32).
+
 ## Project Status
 
 This repository is currently a work in progress.
