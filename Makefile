@@ -6,7 +6,7 @@
 #    By: ebaudet <ebaudet@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2014/04/16 17:24:02 by ebaudet           #+#    #+#              #
-#    Updated: 2014/04/16 17:38:39 by ebaudet          ###   ########.fr        #
+#    Updated: 2019/10/15 17:05:35 by ebaudet          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -23,4 +23,5 @@ FILES	= ft_malloc.c
 SRCS	= $(addprefix srcs/, $(FILES))
 OBJS	= $(SRCS: srcs/%.c=.obj/%.o)
 INC		= -I includes
-FLAGS	=
+FLAGS	= -Wall -Wextra -Werror
+LIB		= -L libft -lft
