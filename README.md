@@ -10,29 +10,35 @@ testing and debugging allocation behavior.
 
 This repository is currently a work in progress.
 
-At the moment it contains:
+Current state:
 
-- `srcs/ft_malloc.c`: initial allocator implementation.
-- `includes/malloc.h`: allocator constants and block metadata structure.
-- `Makefile`: library naming variables, but no build targets yet.
-- `auteur`: 42 author file.
+- `make` builds the shared library and creates the `libft_malloc.so` symlink.
+- `ft_malloc`, `ft_free`, and `ft_realloc` are implemented.
+- Tiny allocations are grouped in allocator zones.
+- Small and large allocations are mapped separately and tracked in the allocator
+  list.
+- `make test` runs allocator behavior tests against both libc and this project.
 
-The project does not currently compile with `make` because the `Makefile` has
-no targets:
+Current build command:
 
 ```sh
 make
 ```
 
-Current result:
+Current test command:
 
-```text
-make: *** No targets. Stop.
+```sh
+make test
 ```
 
-The C implementation is also incomplete: several allocator paths are empty,
-some symbols are missing or inconsistent, and the public malloc API is not fully
-implemented yet.
+Known remaining work:
+
+- Export standard `malloc`, `free`, and `realloc` symbols for preload-based
+  replacement.
+- Implement `calloc` or `ft_calloc` if required.
+- Implement `show_alloc_mem`.
+- Harden allocator behavior for invalid pointers, double frees, fragmentation,
+  and broader stress cases.
 
 ## Purpose
 
@@ -64,8 +70,13 @@ Common allocation classes are:
 ├── auteur
 ├── includes
 │   └── malloc.h
-└── srcs
-    └── ft_malloc.c
+├── srcs
+│   ├── ft_free.c
+│   ├── ft_malloc.c
+│   └── ft_realloc.c
+└── tests
+    ├── run_tests.sh
+    └── test_malloc.c
 ```
 
 ## Build
