@@ -9,12 +9,14 @@
 # define TEST_MALLOC ft_malloc
 # define TEST_FREE ft_free
 # define TEST_REALLOC ft_realloc
-# define TEST_NAME "ft_malloc/ft_free/ft_realloc"
+# define TEST_CALLOC ft_calloc
+# define TEST_NAME "ft_malloc/ft_free/ft_realloc/ft_calloc"
 #else
 # define TEST_MALLOC malloc
 # define TEST_FREE free
 # define TEST_REALLOC realloc
-# define TEST_NAME "malloc/free/realloc"
+# define TEST_CALLOC calloc
+# define TEST_NAME "malloc/free/realloc/calloc"
 #endif
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
@@ -201,31 +203,29 @@ static void	test_realloc_behavior(void)
 	TEST_FREE(from_null);
 }
 
-#ifndef USE_FT_ALLOC
 static void	test_calloc_behavior(void)
 {
 	size_t	*values;
 	size_t	i;
 	void	*overflow;
 
-	values = calloc(128, sizeof(*values));
-	check(values != NULL, "calloc returns a pointer");
+	values = TEST_CALLOC(128, sizeof(*values));
+	check(values != NULL, TEST_NAME " calloc returns a pointer");
 	if (values != NULL)
 	{
 		i = 0;
 		while (i < 128)
 		{
-			check(values[i] == 0, "calloc zero-initializes memory");
+			check(values[i] == 0, TEST_NAME " calloc zero-initializes memory");
 			values[i] = i + 1;
 			++i;
 		}
-		free(values);
+			TEST_FREE(values);
 	}
-	overflow = calloc(((size_t)-1 / 2) + 1, 2);
-	check(overflow == NULL, "calloc detects multiplication overflow");
-	free(overflow);
+	overflow = TEST_CALLOC(((size_t)-1 / 2) + 1, 2);
+	check(overflow == NULL, TEST_NAME " calloc detects multiplication overflow");
+	TEST_FREE(overflow);
 }
-#endif
 
 static void	test_large_allocation(void)
 {
@@ -253,9 +253,7 @@ int	main(void)
 	test_many_allocations_keep_contents();
 	test_free_reuse_pattern();
 	test_realloc_behavior();
-#ifndef USE_FT_ALLOC
 	test_calloc_behavior();
-#endif
 	test_large_allocation();
 	if (g_failures != 0)
 	{

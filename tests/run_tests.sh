@@ -32,7 +32,7 @@ run_step "libc reference run" "$LIBC_TEST_BIN"
 
 printf '\n%s\n' "== exported allocator symbols =="
 missing=0
-for symbol in ft_malloc ft_free ft_realloc
+for symbol in ft_malloc ft_free ft_realloc ft_calloc
 do
 	if ! nm -g "$LIB" | grep -E "[[:space:]]_?$symbol$" >/dev/null 2>&1
 	then
@@ -54,11 +54,11 @@ cc -Wall -Wextra -Werror -std=c11 -DUSE_FT_ALLOC -I includes \
 
 case "$(uname -s)" in
 	Darwin)
-		run_step "ft_malloc/ft_free/ft_realloc comparison run" env \
+		run_step "ft_malloc/ft_free/ft_realloc/ft_calloc comparison run" env \
 			DYLD_LIBRARY_PATH="$ROOT_DIR" "$FT_TEST_BIN"
 		;;
 	*)
-		run_step "ft_malloc/ft_free/ft_realloc comparison run" env \
+		run_step "ft_malloc/ft_free/ft_realloc/ft_calloc comparison run" env \
 			LD_LIBRARY_PATH="$ROOT_DIR" "$FT_TEST_BIN"
 		;;
 esac

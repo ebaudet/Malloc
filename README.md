@@ -15,7 +15,7 @@ This repository is currently a work in progress.
 Current state:
 
 - `make` builds the shared library and creates the `libft_malloc.so` symlink.
-- `ft_malloc`, `ft_free`, and `ft_realloc` are implemented.
+- `ft_malloc`, `ft_free`, `ft_realloc`, and `ft_calloc` are implemented.
 - Tiny allocations are grouped in allocator zones.
 - Small and large allocations are mapped separately and tracked in the allocator
   list.
@@ -37,7 +37,6 @@ Known remaining work:
 
 - Export standard `malloc`, `free`, and `realloc` symbols for preload-based
   replacement.
-- Implement `calloc` or `ft_calloc` if required.
 - Implement `show_alloc_mem`.
 - Harden allocator behavior for invalid pointers, double frees, fragmentation,
   and broader stress cases.
@@ -74,6 +73,7 @@ Common allocation classes are:
 │   └── malloc.h
 ├── srcs
 │   ├── ft_free.c
+│   ├── ft_calloc.c
 │   ├── ft_malloc.c
 │   └── ft_realloc.c
 └── tests
@@ -166,6 +166,7 @@ The current source contains:
 void *ft_malloc(size_t size);
 void ft_free(void *ptr);
 void *ft_realloc(void *ptr, size_t size);
+void *ft_calloc(size_t count, size_t size);
 void show_alloc_mem(void);
 ```
 
@@ -194,12 +195,12 @@ The test runner:
 
 - Builds `libft_malloc.so`.
 - Compiles `tests/test_malloc.c` into a libc reference binary.
-- Runs the reference binary with `malloc`, `free`, and `realloc` from
+- Runs the reference binary with `malloc`, `free`, `realloc`, and `calloc` from
   `stdlib.h`.
-- Checks that `libft_malloc.so` exports `ft_malloc`, `ft_free`, and
-  `ft_realloc`.
+- Checks that `libft_malloc.so` exports `ft_malloc`, `ft_free`, `ft_realloc`,
+  and `ft_calloc`.
 - Compiles the same tests again with `USE_FT_ALLOC`, so the allocation calls use
-  `ft_malloc`, `ft_free`, and `ft_realloc`.
+  `ft_malloc`, `ft_free`, `ft_realloc`, and `ft_calloc`.
 - Runs the project allocator binary and compares the same allocation behavior.
 
 The current tests cover:
@@ -218,9 +219,6 @@ The current tests cover:
 - `calloc` multiplication overflow detection.
 - Large allocation writes at the beginning, middle, and end of the block.
 
-The `calloc` cases currently run only against libc because `ft_calloc` is not
-implemented yet.
-
 Current expected result:
 
 ```sh
@@ -231,18 +229,19 @@ Expected output:
 
 ```text
 == libc reference run ==
-SUCCESS: malloc/free/realloc: 952/952 checks passed
+SUCCESS: malloc/free/realloc/calloc: 952/952 checks passed
 SUCCESS: libc reference run
 
 == exported allocator symbols ==
 found symbol: ft_malloc
 found symbol: ft_free
 found symbol: ft_realloc
+found symbol: ft_calloc
 SUCCESS: exported allocator symbols
 
-== ft_malloc/ft_free/ft_realloc comparison run ==
-SUCCESS: ft_malloc/ft_free/ft_realloc: 822/822 checks passed
-SUCCESS: ft_malloc/ft_free/ft_realloc comparison run
+== ft_malloc/ft_free/ft_realloc/ft_calloc comparison run ==
+SUCCESS: ft_malloc/ft_free/ft_realloc/ft_calloc: 952/952 checks passed
+SUCCESS: ft_malloc/ft_free/ft_realloc/ft_calloc comparison run
 
 SUCCESS: all test suites passed
 ```
@@ -262,7 +261,6 @@ completed:
 - Resolve duplicate and inconsistent macros.
 - Implement tiny, small, and large allocation paths.
 - Export standard `malloc`, `free`, and `realloc` symbols.
-- Implement `calloc` or `ft_calloc` if required.
 - Implement `show_alloc_mem`.
 - Expand tests as new allocator APIs are added.
 
