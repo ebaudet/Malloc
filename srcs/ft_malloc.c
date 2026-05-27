@@ -21,12 +21,12 @@
 static t_zone			*g_zones = NULL;
 static pthread_mutex_t	g_malloc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-size_t	malloc_align(size_t size)
+size_t			malloc_align(size_t size)
 {
 	return ((size + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1));
 }
 
-size_t	malloc_page_align(size_t size)
+size_t			malloc_page_align(size_t size)
 {
 	size_t	page;
 
@@ -34,7 +34,7 @@ size_t	malloc_page_align(size_t size)
 	return (((size + page - 1) / page) * page);
 }
 
-void	malloc_bzero(void *ptr, size_t size)
+void			malloc_bzero(void *ptr, size_t size)
 {
 	unsigned char	*bytes;
 	size_t			i;
@@ -45,7 +45,7 @@ void	malloc_bzero(void *ptr, size_t size)
 		bytes[i++] = 0;
 }
 
-void	malloc_copy(void *dst, const void *src, size_t size)
+void			malloc_copy(void *dst, const void *src, size_t size)
 {
 	unsigned char		*d;
 	const unsigned char	*s;
@@ -61,22 +61,22 @@ void	malloc_copy(void *dst, const void *src, size_t size)
 	}
 }
 
-void	malloc_lock(void)
+void			malloc_lock(void)
 {
 	pthread_mutex_lock(&g_malloc_mutex);
 }
 
-void	malloc_unlock(void)
+void			malloc_unlock(void)
 {
 	pthread_mutex_unlock(&g_malloc_mutex);
 }
 
-t_zone	**malloc_zones(void)
+t_zone			**malloc_zones(void)
 {
 	return (&g_zones);
 }
 
-size_t	malloc_slot_size(size_t type)
+size_t			malloc_slot_size(size_t type)
 {
 	if (type == TINY)
 		return (malloc_align(TINY_MAX));
@@ -85,7 +85,7 @@ size_t	malloc_slot_size(size_t type)
 	return (0);
 }
 
-size_t	malloc_zone_size(size_t type)
+size_t			malloc_zone_size(size_t type)
 {
 	size_t	slot;
 	size_t	size;
@@ -95,7 +95,7 @@ size_t	malloc_zone_size(size_t type)
 	return (malloc_page_align(size));
 }
 
-static void	insert_zone(t_zone *zone)
+static void		insert_zone(t_zone *zone)
 {
 	t_zone	**head;
 	t_zone	*current;
@@ -114,7 +114,7 @@ static void	insert_zone(t_zone *zone)
 	current->next = zone;
 }
 
-static void	init_block(t_zone *zone, t_alloc *block, size_t slot)
+static void		init_block(t_zone *zone, t_alloc *block, size_t slot)
 {
 	block->size = 0;
 	block->capacity = slot;
@@ -123,7 +123,7 @@ static void	init_block(t_zone *zone, t_alloc *block, size_t slot)
 	block->next = NULL;
 }
 
-static void	init_fixed_zone(t_zone *zone, size_t type)
+static void		init_fixed_zone(t_zone *zone, size_t type)
 {
 	t_alloc	*block;
 	t_alloc	*previous;
@@ -155,7 +155,7 @@ static size_t	large_zone_size(size_t requested)
 			+ malloc_align(requested)));
 }
 
-static void	init_large_zone(t_zone *zone, size_t requested)
+static void		init_large_zone(t_zone *zone, size_t requested)
 {
 	zone->allocs = (t_alloc *)((char *)zone + sizeof(t_zone));
 	zone->allocs->size = requested;
@@ -220,7 +220,7 @@ static size_t	zone_type_for_size(size_t size)
 	return (LARGE);
 }
 
-static void	*alloc_large(size_t size)
+static void		*alloc_large(size_t size)
 {
 	t_zone	*zone;
 
@@ -230,7 +230,7 @@ static void	*alloc_large(size_t size)
 	return ((char *)zone->allocs + sizeof(t_alloc));
 }
 
-static void	*alloc_from_zone(size_t size, size_t type)
+static void		*alloc_from_zone(size_t size, size_t type)
 {
 	t_alloc	*block;
 	t_zone	*zone;
@@ -250,7 +250,7 @@ static void	*alloc_from_zone(size_t size, size_t type)
 	return ((char *)block + sizeof(t_alloc));
 }
 
-void	*malloc_alloc(size_t size)
+void			*malloc_alloc(size_t size)
 {
 	size_t	type;
 
@@ -262,7 +262,7 @@ void	*malloc_alloc(size_t size)
 	return (alloc_from_zone(size, type));
 }
 
-void	*ft_malloc(size_t size)
+void			*ft_malloc(size_t size)
 {
 	void	*ptr;
 
@@ -272,7 +272,7 @@ void	*ft_malloc(size_t size)
 	return (ptr);
 }
 
-void	*malloc(size_t size)
+void			*malloc(size_t size)
 {
 	return (ft_malloc(size));
 }
