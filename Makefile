@@ -32,7 +32,7 @@ ifeq ($(UNAME_S),Darwin)
 	LDFLAGS = -dynamiclib
 endif
 
-.PHONY: all clean fclean re test
+.PHONY: all clean fclean re test norm-lint
 
 all: $(NAME) $(LINK)
 
@@ -56,3 +56,6 @@ re: fclean all
 
 test: all
 	sh tests/run_tests.sh
+
+norm-lint:
+	python3 tools/norm_linter.py
