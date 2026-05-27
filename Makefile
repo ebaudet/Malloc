@@ -32,7 +32,7 @@ ifeq ($(UNAME_S),Darwin)
 	LDFLAGS = -dynamiclib
 endif
 
-.PHONY: all clean fclean re
+.PHONY: all clean fclean re test
 
 all: $(NAME)
 
@@ -51,3 +51,6 @@ fclean: clean
 	rm -f $(NAME) $(LINK)
 
 re: fclean all
+
+test: all
+	sh tests/run_tests.sh
