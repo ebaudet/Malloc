@@ -167,35 +167,78 @@ void *realloc(void *ptr, size_t size);
 
 ## Tests
 
-No automated tests are currently present in this repository.
+Automated tests are available in the `tests/` directory.
 
-Useful test categories for this project:
-
-- Allocating and freeing tiny, small, and large blocks.
-- Allocating zero bytes.
-- Reallocating to smaller and larger sizes.
-- Freeing `NULL`.
-- Reusing freed blocks.
-- Stress testing many allocations of mixed sizes.
-- Running real commands with the allocator preloaded.
-- Checking for leaks and invalid memory access with tools such as `valgrind`
-  on Linux.
-
-Example manual smoke test once the allocator builds:
+Run them with:
 
 ```sh
-make
-cc test.c -o test_malloc
-LD_PRELOAD=./libft_malloc.so ./test_malloc
+make test
 ```
 
-On macOS:
+The test runner:
+
+- Builds `libft_malloc.so`.
+- Compiles `tests/test_malloc.c` into `tests/test_malloc`.
+- Runs the test binary once with the system allocator from `stdlib.h`.
+- Checks that `libft_malloc.so` exports the required replacement symbols.
+- Runs the same binary again with the custom allocator preloaded, once the
+  required symbols are available.
+
+The current tests cover:
+
+- Basic `malloc`, write, read, and `free` behavior.
+- `malloc(0)`.
+- `free(NULL)`.
+- Pointer alignment.
+- Many mixed-size allocations kept alive at the same time.
+- Content preservation across many allocations.
+- `realloc` growth.
+- `realloc` shrink.
+- `realloc(NULL, size)`.
+- `calloc` zero initialization.
+- `calloc` multiplication overflow detection.
+- Large allocation writes at the beginning, middle, and end of the block.
+
+Current expected result:
 
 ```sh
-make
-cc test.c -o test_malloc
-DYLD_LIBRARY_PATH=. DYLD_INSERT_LIBRARIES=./libft_malloc.so ./test_malloc
+make test
 ```
+
+The libc reference run should pass:
+
+```text
+== libc reference run ==
+malloc behavior tests passed
+```
+
+The project allocator run currently fails before preload because the shared
+library does not yet export the standard allocator symbols:
+
+```text
+== exported allocator symbols ==
+missing symbol: malloc
+missing symbol: free
+missing symbol: realloc
+libft_malloc.so cannot replace the stdlib allocator yet.
+```
+
+After `malloc`, `free`, and `realloc` are implemented and exported, the same
+test command should continue into the preload run.
+
+On Linux, the runner uses:
+
+```sh
+LD_PRELOAD=./libft_malloc.so ./tests/test_malloc
+```
+
+On macOS, the runner uses:
+
+```sh
+DYLD_LIBRARY_PATH=. DYLD_INSERT_LIBRARIES=./libft_malloc.so ./tests/test_malloc
+```
+
+The generated test binary is ignored by Git through `.gitignore`.
 
 ## Implementation Checklist
 
