@@ -13,23 +13,36 @@
 #ifndef MALLOC_H
 # define MALLOC_H
 
-# define PAGE getpagesize()
+# include <stddef.h>
+# include <sys/resource.h>
+# include <unistd.h>
+
+# define PAGE ((size_t)getpagesize())
 # define SIZE_N (PAGE / 8)
 # define SIZE_M (PAGE)
 # define TINY_BLOCK 100
 # define SMALL_BLOCK 800
-# define TINY_BLOCK 1
 # define MAX_ALLOC 100
+
+enum				e_alloc_type
+{
+	TINY = 1,
+	SMALL,
+	LARGE
+};
 
 typedef struct		s_block
 {
 	size_t			type;
-	size_t			size;
 	rlim_t			total;
 	size_t			size[MAX_ALLOC];
-	s_block			*next;
+	size_t			index;
+	struct s_block	*next;
 	void			*data;
 	int				free;
 }					t_block;
+
+void				*ft_malloc(size_t size);
+void				show_alloc_mem(void);
 
 #endif
