@@ -8,11 +8,13 @@
 # include "malloc.h"
 # define TEST_MALLOC ft_malloc
 # define TEST_FREE ft_free
-# define TEST_NAME "ft_malloc/ft_free"
+# define TEST_REALLOC ft_realloc
+# define TEST_NAME "ft_malloc/ft_free/ft_realloc"
 #else
 # define TEST_MALLOC malloc
 # define TEST_FREE free
-# define TEST_NAME "malloc/free"
+# define TEST_REALLOC realloc
+# define TEST_NAME "malloc/free/realloc"
 #endif
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
@@ -166,7 +168,6 @@ static void	test_free_reuse_pattern(void)
 	}
 }
 
-#ifndef USE_FT_ALLOC
 static void	test_realloc_behavior(void)
 {
 	char	*ptr;
@@ -175,31 +176,30 @@ static void	test_realloc_behavior(void)
 	char	*from_null;
 	size_t	i;
 
-	ptr = malloc(16);
-	check(ptr != NULL, "malloc before realloc returns a pointer");
+	ptr = TEST_MALLOC(16);
+	check(ptr != NULL, TEST_NAME " allocates before realloc");
 	if (ptr == NULL)
 		return ;
 	strcpy(ptr, "abcdefghijkl");
-	grown = realloc(ptr, 4096);
-	check(grown != NULL, "realloc can grow an allocation");
+	grown = TEST_REALLOC(ptr, 4096);
+	check(grown != NULL, TEST_NAME " can grow an allocation");
 	if (grown == NULL)
 		return ;
 	check(memcmp(grown, "abcdefghijkl", 12) == 0, "realloc growth preserves contents");
 	i = 12;
 	while (i < 4096)
 		grown[i++] = 'x';
-	shrunk = realloc(grown, 8);
-	check(shrunk != NULL, "realloc can shrink an allocation");
+	shrunk = TEST_REALLOC(grown, 8);
+	check(shrunk != NULL, TEST_NAME " can shrink an allocation");
 	if (shrunk != NULL)
 	{
 		check(memcmp(shrunk, "abcdefgh", 8) == 0, "realloc shrink preserves prefix");
-		free(shrunk);
+		TEST_FREE(shrunk);
 	}
-	from_null = realloc(NULL, 64);
-	check(from_null != NULL, "realloc(NULL, size) behaves like malloc");
-	free(from_null);
+	from_null = TEST_REALLOC(NULL, 64);
+	check(from_null != NULL, TEST_NAME " realloc(NULL, size) behaves like malloc");
+	TEST_FREE(from_null);
 }
-#endif
 
 #ifndef USE_FT_ALLOC
 static void	test_calloc_behavior(void)
@@ -252,8 +252,8 @@ int	main(void)
 	test_alignment();
 	test_many_allocations_keep_contents();
 	test_free_reuse_pattern();
-#ifndef USE_FT_ALLOC
 	test_realloc_behavior();
+#ifndef USE_FT_ALLOC
 	test_calloc_behavior();
 #endif
 	test_large_allocation();

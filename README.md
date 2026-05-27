@@ -151,6 +151,8 @@ The current source contains:
 
 ```c
 void *ft_malloc(size_t size);
+void ft_free(void *ptr);
+void *ft_realloc(void *ptr, size_t size);
 void show_alloc_mem(void);
 ```
 
@@ -179,11 +181,13 @@ The test runner:
 
 - Builds `libft_malloc.so`.
 - Compiles `tests/test_malloc.c` into a libc reference binary.
-- Runs the reference binary with `malloc` and `free` from `stdlib.h`.
-- Checks that `libft_malloc.so` exports `ft_malloc` and `ft_free`.
+- Runs the reference binary with `malloc`, `free`, and `realloc` from
+  `stdlib.h`.
+- Checks that `libft_malloc.so` exports `ft_malloc`, `ft_free`, and
+  `ft_realloc`.
 - Compiles the same tests again with `USE_FT_ALLOC`, so the allocation calls use
-  `ft_malloc` and `ft_free`.
-- Runs the project allocator binary and compares the same malloc/free behavior.
+  `ft_malloc`, `ft_free`, and `ft_realloc`.
+- Runs the project allocator binary and compares the same allocation behavior.
 
 The current tests cover:
 
@@ -201,8 +205,8 @@ The current tests cover:
 - `calloc` multiplication overflow detection.
 - Large allocation writes at the beginning, middle, and end of the block.
 
-The `realloc` and `calloc` cases currently run only against libc because
-`ft_realloc` and `ft_calloc` are not implemented yet.
+The `calloc` cases currently run only against libc because `ft_calloc` is not
+implemented yet.
 
 Current expected result:
 
@@ -214,17 +218,18 @@ Expected output:
 
 ```text
 == libc reference run ==
-SUCCESS: malloc/free: 952/952 checks passed
+SUCCESS: malloc/free/realloc: 952/952 checks passed
 SUCCESS: libc reference run
 
 == exported allocator symbols ==
 found symbol: ft_malloc
 found symbol: ft_free
+found symbol: ft_realloc
 SUCCESS: exported allocator symbols
 
-== ft_malloc/ft_free comparison run ==
-SUCCESS: ft_malloc/ft_free: 816/816 checks passed
-SUCCESS: ft_malloc/ft_free comparison run
+== ft_malloc/ft_free/ft_realloc comparison run ==
+SUCCESS: ft_malloc/ft_free/ft_realloc: 822/822 checks passed
+SUCCESS: ft_malloc/ft_free/ft_realloc comparison run
 
 SUCCESS: all test suites passed
 ```
@@ -243,11 +248,10 @@ completed:
   `LARGE`.
 - Resolve duplicate and inconsistent macros.
 - Implement tiny, small, and large allocation paths.
-- Implement `free`.
-- Implement `realloc`.
 - Export standard `malloc`, `free`, and `realloc` symbols.
+- Implement `calloc` or `ft_calloc` if required.
 - Implement `show_alloc_mem`.
-- Add tests or test scripts.
+- Expand tests as new allocator APIs are added.
 
 ## Useful Commands
 
