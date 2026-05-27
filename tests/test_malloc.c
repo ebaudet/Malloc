@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #ifdef USE_FT_ALLOC
 # include "malloc.h"
@@ -10,6 +11,7 @@
 # define TEST_FREE ft_free
 # define TEST_REALLOC ft_realloc
 # define TEST_CALLOC ft_calloc
+# define TEST_SHOW_ALLOC_MEM show_alloc_mem
 # define TEST_NAME "ft_malloc/ft_free/ft_realloc/ft_calloc"
 #else
 # define TEST_MALLOC malloc
@@ -246,6 +248,79 @@ static void	test_large_allocation(void)
 	}
 }
 
+#ifdef USE_FT_ALLOC
+static int	contains_text(const char *haystack, const char *needle)
+{
+	size_t	i;
+	size_t	j;
+
+	i = 0;
+	while (haystack[i])
+	{
+		j = 0;
+		while (haystack[i + j] && needle[j] && haystack[i + j] == needle[j])
+			++j;
+		if (needle[j] == '\0')
+			return (1);
+		++i;
+	}
+	return (0);
+}
+
+static void	test_show_alloc_mem_output(void)
+{
+	int		pipefd[2];
+	int		stdout_copy;
+	ssize_t	read_size;
+	char	buffer[8192];
+	void	*tiny;
+	void	*small;
+	void	*large;
+
+	tiny = TEST_MALLOC(42);
+	small = TEST_MALLOC(3000);
+	large = TEST_MALLOC(1024 * 1024);
+	check(tiny != NULL && small != NULL && large != NULL,
+		TEST_NAME " prepares show_alloc_mem allocations");
+	if (!tiny || !small || !large)
+		return ;
+	check(pipe(pipefd) == 0, "pipe is available for show_alloc_mem capture");
+	stdout_copy = dup(1);
+	check(stdout_copy >= 0, "stdout can be duplicated");
+	if (stdout_copy < 0)
+		return ;
+	dup2(pipefd[1], 1);
+	close(pipefd[1]);
+	TEST_SHOW_ALLOC_MEM();
+	dup2(stdout_copy, 1);
+	close(stdout_copy);
+	read_size = read(pipefd[0], buffer, sizeof(buffer) - 1);
+	close(pipefd[0]);
+	check(read_size > 0, "show_alloc_mem writes output");
+	if (read_size > 0)
+	{
+		buffer[read_size] = '\0';
+		check(contains_text(buffer, "TINY : 0x"),
+			"show_alloc_mem prints a TINY zone");
+		check(contains_text(buffer, "SMALL : 0x"),
+			"show_alloc_mem prints a SMALL zone");
+		check(contains_text(buffer, "LARGE : 0x"),
+			"show_alloc_mem prints a LARGE zone");
+		check(contains_text(buffer, "42 bytes"),
+			"show_alloc_mem prints tiny allocation size");
+		check(contains_text(buffer, "3000 bytes"),
+			"show_alloc_mem prints small allocation size");
+		check(contains_text(buffer, "1048576 bytes"),
+			"show_alloc_mem prints large allocation size");
+		check(contains_text(buffer, "Total : "),
+			"show_alloc_mem prints the total allocated size");
+	}
+	TEST_FREE(tiny);
+	TEST_FREE(small);
+	TEST_FREE(large);
+}
+#endif
+
 int	main(void)
 {
 	test_basic_allocations();
@@ -255,6 +330,9 @@ int	main(void)
 	test_realloc_behavior();
 	test_calloc_behavior();
 	test_large_allocation();
+#ifdef USE_FT_ALLOC
+	test_show_alloc_mem_output();
+#endif
 	if (g_failures != 0)
 	{
 		fprintf(stderr, "ERROR: %s: %d/%d checks passed, %d failed\n",

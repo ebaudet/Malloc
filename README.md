@@ -15,7 +15,8 @@ This repository is currently a work in progress.
 Current state:
 
 - `make` builds the shared library and creates the `libft_malloc.so` symlink.
-- `ft_malloc`, `ft_free`, `ft_realloc`, and `ft_calloc` are implemented.
+- `ft_malloc`, `ft_free`, `ft_realloc`, `ft_calloc`, and `show_alloc_mem` are
+  implemented.
 - Tiny allocations are grouped in allocator zones.
 - Small and large allocations are mapped separately and tracked in the allocator
   list.
@@ -37,7 +38,6 @@ Known remaining work:
 
 - Export standard `malloc`, `free`, and `realloc` symbols for preload-based
   replacement.
-- Implement `show_alloc_mem`.
 - Harden allocator behavior for invalid pointers, double frees, fragmentation,
   and broader stress cases.
 
@@ -75,7 +75,8 @@ Common allocation classes are:
 │   ├── ft_free.c
 │   ├── ft_calloc.c
 │   ├── ft_malloc.c
-│   └── ft_realloc.c
+│   ├── ft_realloc.c
+│   └── show_alloc_mem.c
 └── tests
     ├── run_tests.sh
     └── test_malloc.c
@@ -102,13 +103,13 @@ Makefile falls back to:
 uname -m
 ```
 
-Expected build command once Makefile rules are implemented:
+Build command:
 
 ```sh
 make
 ```
 
-Expected cleanup commands once implemented:
+Cleanup commands:
 
 ```sh
 make clean
@@ -167,10 +168,23 @@ void *ft_malloc(size_t size);
 void ft_free(void *ptr);
 void *ft_realloc(void *ptr, size_t size);
 void *ft_calloc(size_t count, size_t size);
-void show_alloc_mem(void);
+void show_alloc_mem();
 ```
 
-`show_alloc_mem` is declared in the source but has no implementation yet.
+`show_alloc_mem` prints active TINY, SMALL, and LARGE allocation zones, each
+allocated range, and the total number of allocated bytes.
+
+Example format:
+
+```text
+TINY : 0xA0000
+0xA0020 - 0xA004A : 42 bytes
+SMALL : 0xAD000
+0xAD020 - 0xADEAD : 3725 bytes
+LARGE : 0xB0000
+0xB0020 - 0xBBEEF : 48847 bytes
+Total : 52614 bytes
+```
 
 To behave as a drop-in allocator, the project still needs exported functions
 with the standard names:
@@ -198,7 +212,7 @@ The test runner:
 - Runs the reference binary with `malloc`, `free`, `realloc`, and `calloc` from
   `stdlib.h`.
 - Checks that `libft_malloc.so` exports `ft_malloc`, `ft_free`, `ft_realloc`,
-  and `ft_calloc`.
+  `ft_calloc`, and `show_alloc_mem`.
 - Compiles the same tests again with `USE_FT_ALLOC`, so the allocation calls use
   `ft_malloc`, `ft_free`, `ft_realloc`, and `ft_calloc`.
 - Runs the project allocator binary and compares the same allocation behavior.
@@ -218,6 +232,7 @@ The current tests cover:
 - `calloc` zero initialization.
 - `calloc` multiplication overflow detection.
 - Large allocation writes at the beginning, middle, and end of the block.
+- `show_alloc_mem` output for TINY, SMALL, LARGE, allocation sizes, and total.
 
 Current expected result:
 
@@ -237,11 +252,12 @@ found symbol: ft_malloc
 found symbol: ft_free
 found symbol: ft_realloc
 found symbol: ft_calloc
+found symbol: show_alloc_mem
 SUCCESS: exported allocator symbols
 
-== ft_malloc/ft_free/ft_realloc/ft_calloc comparison run ==
-SUCCESS: ft_malloc/ft_free/ft_realloc/ft_calloc: 952/952 checks passed
-SUCCESS: ft_malloc/ft_free/ft_realloc/ft_calloc comparison run
+== ft allocator and show_alloc_mem comparison run ==
+SUCCESS: ft_malloc/ft_free/ft_realloc/ft_calloc: 963/963 checks passed
+SUCCESS: ft allocator and show_alloc_mem comparison run
 
 SUCCESS: all test suites passed
 ```
@@ -261,7 +277,6 @@ completed:
 - Resolve duplicate and inconsistent macros.
 - Implement tiny, small, and large allocation paths.
 - Export standard `malloc`, `free`, and `realloc` symbols.
-- Implement `show_alloc_mem`.
 - Expand tests as new allocator APIs are added.
 
 ## Useful Commands

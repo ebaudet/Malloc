@@ -158,7 +158,3 @@ void			*ft_malloc(size_t size)
 	return (NULL);
 
 }
-
-void	show_alloc_mem() {
-
-}
