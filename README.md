@@ -34,13 +34,6 @@ Current test command:
 make test
 ```
 
-Known remaining work:
-
-- Export standard `malloc`, `free`, and `realloc` symbols for preload-based
-  replacement.
-- Harden allocator behavior for invalid pointers, double frees, fragmentation,
-  and broader stress cases.
-
 ## Purpose
 
 The intended allocator should manage memory allocations without directly relying
