@@ -18,10 +18,36 @@ NAME	= libft_malloc_$(HOSTTYPE).so
 
 LINK	= libft_malloc.so
 
+CC		= cc
 FILES	= ft_malloc.c
 
 SRCS	= $(addprefix srcs/, $(FILES))
-OBJS	= $(SRCS: srcs/%.c=.obj/%.o)
+OBJS	= $(SRCS:srcs/%.c=.obj/%.o)
 INC		= -I includes
-FLAGS	= -Wall -Wextra -Werror
-LIB		= -L libft -lft
+CFLAGS	= -Wall -Wextra -Werror -fPIC
+LDFLAGS	= -shared
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	LDFLAGS = -dynamiclib
+endif
+
+.PHONY: all clean fclean re
+
+all: $(NAME)
+
+$(NAME): $(OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^
+	ln -sf $(NAME) $(LINK)
+
+.obj/%.o: srcs/%.c includes/malloc.h
+	@mkdir -p .obj
+	$(CC) $(CFLAGS) $(INC) -c $< -o $@
+
+clean:
+	rm -rf .obj
+
+fclean: clean
+	rm -f $(NAME) $(LINK)
+
+re: fclean all
