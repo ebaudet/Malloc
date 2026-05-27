@@ -11,7 +11,7 @@
 # **************************************************************************** #
 
 ifeq ($(HOSTTYPE),)
-	HOSTTYPE := $(shell uname -m)
+	HOSTTYPE := $(shell uname -m)_$(shell uname -s)
 endif
 
 NAME	= libft_malloc_$(HOSTTYPE).so
@@ -24,7 +24,7 @@ FILES	= ft_malloc.c ft_free.c ft_realloc.c ft_calloc.c show_alloc_mem.c
 SRCS	= $(addprefix srcs/, $(FILES))
 OBJS	= $(SRCS:srcs/%.c=.obj/%.o)
 INC		= -I includes
-CFLAGS	= -Wall -Wextra -Werror -fPIC
+CFLAGS	= -Wall -Wextra -Werror -fPIC -fvisibility=hidden -pthread
 LDFLAGS	= -shared
 
 UNAME_S := $(shell uname -s)
@@ -34,10 +34,12 @@ endif
 
 .PHONY: all clean fclean re test
 
-all: $(NAME)
+all: $(NAME) $(LINK)
 
 $(NAME): $(OBJS)
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) $(LDFLAGS) -pthread -o $@ $^
+
+$(LINK): $(NAME)
 	ln -sf $(NAME) $(LINK)
 
 .obj/%.o: srcs/%.c includes/malloc.h
@@ -48,7 +50,7 @@ clean:
 	rm -rf .obj
 
 fclean: clean
-	rm -f $(NAME) $(LINK)
+	rm -f $(NAME) $(LINK) libft_malloc_*.so
 
 re: fclean all
 

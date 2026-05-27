@@ -6,73 +6,82 @@
 /*   By: ebaudet <ebaudet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/27 18:58:00 by ebaudet           #+#    #+#             */
-/*   Updated: 2026/05/27 18:58:00 by ebaudet          ###   ########.fr       */
+/*   Updated: 2026/05/27 20:30:00 by ebaudet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "malloc.h"
 #include <sys/mman.h>
 
-static int		index_val(t_block *ptr)
+t_alloc	*malloc_find_alloc(void *ptr)
 {
-	size_t		i;
-
-	i = 0;
-	while (i < MAX_ALLOC)
-	{
-		if (ptr->size[i] == 0)
-			return (i);
-		++i;
-	}
-	return (i);
-}
-
-static int		free_tiny(t_block *block, void *ptr)
-{
-	char		*data;
-	size_t		i;
-
-	data = (char *)block + sizeof(t_block);
-	i = 0;
-	while (i < MAX_ALLOC)
-	{
-		if (block->size[i] && ptr == data + (i * SIZE_N))
-		{
-			block->size[i] = 0;
-			block->index = index_val(block);
-			return (1);
-		}
-		++i;
-	}
-	return (0);
-}
-
-void			ft_free(void *ptr)
-{
-	t_block		*previous;
-	t_block		*current;
+	t_zone	*zone;
+	t_alloc	*block;
+	void	*data;
 
 	if (!ptr)
-		return ;
-	previous = NULL;
-	current = get_malloc();
-	if (current == MAP_FAILED)
-		return ;
-	while (current)
+		return (NULL);
+	zone = *malloc_zones();
+	while (zone)
 	{
-		if (current->type == TINY)
+		block = zone->allocs;
+		while (block)
 		{
-			if (free_tiny(current, ptr))
-				return ;
+			data = (char *)block + sizeof(t_alloc);
+			if (data == ptr)
+				return (block);
+			block = block->next;
 		}
-		else if (ptr == current->data)
-		{
-			if (previous)
-				previous->next = current->next;
-			munmap(current, current->total);
-			return ;
-		}
-		previous = current;
-		current = current->next;
+		zone = zone->next;
 	}
+	return (NULL);
+}
+
+static void	remove_zone(t_zone *zone)
+{
+	t_zone	**head;
+	t_zone	*current;
+
+	head = malloc_zones();
+	if (*head == zone)
+	{
+		*head = zone->next;
+		return ;
+	}
+	current = *head;
+	while (current && current->next != zone)
+		current = current->next;
+	if (current)
+		current->next = zone->next;
+}
+
+void	malloc_free_unlocked(void *ptr)
+{
+	t_alloc	*block;
+	t_zone	*zone;
+
+	block = malloc_find_alloc(ptr);
+	if (!block || block->free)
+		return ;
+	zone = block->zone;
+	if (zone->type == LARGE)
+	{
+		remove_zone(zone);
+		munmap(zone, zone->total);
+		return ;
+	}
+	block->size = 0;
+	block->free = 1;
+}
+
+void	ft_free(void *ptr)
+{
+	malloc_lock();
+	malloc_free_unlocked(ptr);
+	malloc_unlock();
+}
+
+void	free(void *ptr)
+{
+	ft_free(ptr);
 }

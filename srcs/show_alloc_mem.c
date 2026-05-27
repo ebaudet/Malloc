@@ -6,13 +6,12 @@
 /*   By: ebaudet <ebaudet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/27 20:10:00 by ebaudet           #+#    #+#             */
-/*   Updated: 2026/05/27 20:10:00 by ebaudet          ###   ########.fr       */
+/*   Updated: 2026/05/27 20:30:00 by ebaudet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "malloc.h"
 #include <stdint.h>
-#include <sys/mman.h>
 
 static void	putstr(const char *str)
 {
@@ -67,91 +66,94 @@ static void	puthex(uintptr_t value)
 		write(1, &buffer[--i], 1);
 }
 
-static void	print_header(t_block *block)
+static int	zone_has_allocs(t_zone *zone)
 {
-	if (block->type == TINY)
+	t_alloc	*block;
+
+	block = zone->allocs;
+	while (block)
+	{
+		if (!block->free)
+			return (1);
+		block = block->next;
+	}
+	return (0);
+}
+
+static void	print_header(t_zone *zone)
+{
+	if (zone->type == TINY)
 		putstr("TINY : ");
-	else if (block->type == SMALL)
+	else if (zone->type == SMALL)
 		putstr("SMALL : ");
 	else
 		putstr("LARGE : ");
-	puthex((uintptr_t)block);
+	puthex((uintptr_t)zone);
 	putstr("\n");
 }
 
-static void	print_alloc(void *start, size_t size)
+static void	print_alloc(t_alloc *block)
 {
+	void	*start;
+
+	start = (char *)block + sizeof(t_alloc);
 	puthex((uintptr_t)start);
 	putstr(" - ");
-	puthex((uintptr_t)((char *)start + size));
+	puthex((uintptr_t)((char *)start + block->size));
 	putstr(" : ");
-	putnbr(size);
+	putnbr(block->size);
 	putstr(" bytes\n");
 }
 
-static size_t	print_tiny_block(t_block *block)
+static size_t	print_zone(t_zone *zone)
+{
+	t_alloc	*block;
+	size_t	total;
+
+	total = 0;
+	if (!zone_has_allocs(zone))
+		return (0);
+	print_header(zone);
+	block = zone->allocs;
+	while (block)
+	{
+		if (!block->free)
+		{
+			print_alloc(block);
+			total += block->size;
+		}
+		block = block->next;
+	}
+	return (total);
+}
+
+static size_t	print_type(size_t type)
+{
+	t_zone	*zone;
+	size_t	total;
+
+	total = 0;
+	zone = *malloc_zones();
+	while (zone)
+	{
+		if (zone->type == type)
+			total += print_zone(zone);
+		zone = zone->next;
+	}
+	return (total);
+}
+
+void	show_alloc_mem(void)
 {
 	size_t	total;
-	size_t	i;
-	char	*data;
 
+	malloc_lock();
 	total = 0;
-	i = 0;
-	data = (char *)block + sizeof(t_block);
-	print_header(block);
-	while (i < MAX_ALLOC)
-	{
-		if (block->size[i])
-		{
-			print_alloc(data + (i * SIZE_N), block->size[i]);
-			total += block->size[i];
-		}
-		++i;
-	}
-	return (total);
-}
-
-static size_t	print_block(t_block *block)
-{
-	print_header(block);
-	print_alloc(block->data, block->size[0]);
-	return (block->size[0]);
-}
-
-static size_t	print_type(t_block *blocks, size_t type)
-{
-	t_block		*current;
-	size_t		total;
-
-	total = 0;
-	current = blocks;
-	while (current)
-	{
-		if (current->type == type)
-		{
-			if (type == TINY)
-				total += print_tiny_block(current);
-			else if (current->size[0])
-				total += print_block(current);
-		}
-		current = current->next;
-	}
-	return (total);
-}
-
-void		show_alloc_mem(void)
-{
-	t_block		*blocks;
-	size_t		total;
-
-	blocks = get_malloc();
-	if (blocks == MAP_FAILED)
-		return ;
-	total = 0;
-	total += print_type(blocks, TINY);
-	total += print_type(blocks, SMALL);
-	total += print_type(blocks, LARGE);
+	total += print_type(TINY);
+	total += print_type(SMALL);
+	total += print_type(LARGE);
 	putstr("Total : ");
 	putnbr(total);
 	putstr(" bytes\n");
+	malloc_unlock();
 }

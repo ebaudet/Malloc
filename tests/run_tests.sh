@@ -32,7 +32,7 @@ run_step "libc reference run" "$LIBC_TEST_BIN"
 
 printf '\n%s\n' "== exported allocator symbols =="
 missing=0
-for symbol in ft_malloc ft_free ft_realloc ft_calloc show_alloc_mem
+for symbol in malloc free realloc ft_malloc ft_free ft_realloc ft_calloc show_alloc_mem
 do
 	if ! nm -g "$LIB" | grep -E "[[:space:]]_?$symbol$" >/dev/null 2>&1
 	then
@@ -51,6 +51,18 @@ printf '%s\n' "SUCCESS: exported allocator symbols"
 
 cc -Wall -Wextra -Werror -std=c11 -DUSE_FT_ALLOC -I includes \
 	tests/test_malloc.c -L. -lft_malloc -Wl,-rpath,. -o "$FT_TEST_BIN"
+
+case "$(uname -s)" in
+	Darwin)
+		run_step "standard malloc/free/realloc preload run" env \
+			DYLD_LIBRARY_PATH="$ROOT_DIR" \
+			DYLD_INSERT_LIBRARIES="$LIB" "$LIBC_TEST_BIN"
+		;;
+	*)
+		run_step "standard malloc/free/realloc preload run" env \
+			LD_PRELOAD="$LIB" "$LIBC_TEST_BIN"
+		;;
+esac
 
 case "$(uname -s)" in
 	Darwin)

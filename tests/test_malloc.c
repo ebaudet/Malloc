@@ -172,6 +172,46 @@ static void	test_free_reuse_pattern(void)
 	}
 }
 
+#ifdef USE_FT_ALLOC
+static void	test_invalid_free_smoke(void)
+{
+	char	stack_value;
+	void	*ptr;
+
+	TEST_FREE(NULL);
+	TEST_FREE(&stack_value);
+	ptr = TEST_MALLOC(64);
+	check(ptr != NULL, TEST_NAME " allocates before double-free smoke");
+	TEST_FREE(ptr);
+	TEST_FREE(ptr);
+}
+
+static void	test_zone_minimum_capacity(void)
+{
+	enum { COUNT = 128 };
+	void	*tiny[COUNT];
+	void	*small[COUNT];
+	size_t	i;
+
+	i = 0;
+	while (i < COUNT)
+	{
+		tiny[i] = TEST_MALLOC(32);
+		small[i] = TEST_MALLOC(1024);
+		check(tiny[i] != NULL, TEST_NAME " supports 100+ tiny allocations");
+		check(small[i] != NULL, TEST_NAME " supports 100+ small allocations");
+		++i;
+	}
+	i = 0;
+	while (i < COUNT)
+	{
+		TEST_FREE(tiny[i]);
+		TEST_FREE(small[i]);
+		++i;
+	}
+}
+#endif
+
 static void	test_realloc_behavior(void)
 {
 	char	*ptr;
@@ -312,7 +352,7 @@ static void	test_show_alloc_mem_output(void)
 			"show_alloc_mem prints small allocation size");
 		check(contains_text(buffer, "1048576 bytes"),
 			"show_alloc_mem prints large allocation size");
-		check(contains_text(buffer, "Total : "),
+		check(contains_text(buffer, "Total : 1051618 bytes"),
 			"show_alloc_mem prints the total allocated size");
 	}
 	TEST_FREE(tiny);
@@ -327,6 +367,10 @@ int	main(void)
 	test_alignment();
 	test_many_allocations_keep_contents();
 	test_free_reuse_pattern();
+#ifdef USE_FT_ALLOC
+	test_invalid_free_smoke();
+	test_zone_minimum_capacity();
+#endif
 	test_realloc_behavior();
 	test_calloc_behavior();
 	test_large_allocation();

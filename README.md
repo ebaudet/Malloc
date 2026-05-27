@@ -14,13 +14,17 @@ This repository is currently a work in progress.
 
 Current state:
 
-- `make` builds the shared library and creates the `libft_malloc.so` symlink.
+- `make` builds `libft_malloc_$(HOSTTYPE).so` and creates the
+  `libft_malloc.so` symlink.
+- The library exports the mandatory `malloc`, `free`, `realloc`, and
+  `show_alloc_mem` symbols.
 - `ft_malloc`, `ft_free`, `ft_realloc`, `ft_calloc`, and `show_alloc_mem` are
-  implemented.
-- Tiny allocations are grouped in allocator zones.
-- Small and large allocations are mapped separately and tracked in the allocator
-  list.
-- `make test` runs allocator behavior tests against both libc and this project.
+  also available for direct tests.
+- TINY and SMALL allocations are grouped in page-aligned zones with at least 100
+  allocation slots per zone.
+- LARGE allocations are mapped independently.
+- `make test` runs allocator behavior tests against libc, direct `ft_*` calls,
+  and standard-symbol preload/insertion.
 
 Current build command:
 
@@ -61,6 +65,7 @@ Common allocation classes are:
 ```text
 .
 ├── Makefile
+├── author
 ├── auteur
 ├── includes
 │   └── malloc.h
@@ -93,7 +98,7 @@ libft_malloc.so
 Makefile falls back to:
 
 ```sh
-uname -m
+$(shell uname -m)_$(shell uname -s)
 ```
 
 Build command:
@@ -157,11 +162,15 @@ Then run it with the allocator preloaded as shown above.
 The current source contains:
 
 ```c
+void *malloc(size_t size);
+void free(void *ptr);
+void *realloc(void *ptr, size_t size);
+void show_alloc_mem();
+
 void *ft_malloc(size_t size);
 void ft_free(void *ptr);
 void *ft_realloc(void *ptr, size_t size);
 void *ft_calloc(size_t count, size_t size);
-void show_alloc_mem();
 ```
 
 `show_alloc_mem` prints active TINY, SMALL, and LARGE allocation zones, each
@@ -179,14 +188,7 @@ LARGE : 0xB0000
 Total : 52614 bytes
 ```
 
-To behave as a drop-in allocator, the project still needs exported functions
-with the standard names:
-
-```c
-void *malloc(size_t size);
-void free(void *ptr);
-void *realloc(void *ptr, size_t size);
-```
+`ft_calloc` is an extra helper API and is not required by the mandatory subject.
 
 ## Tests
 
@@ -204,8 +206,9 @@ The test runner:
 - Compiles `tests/test_malloc.c` into a libc reference binary.
 - Runs the reference binary with `malloc`, `free`, `realloc`, and `calloc` from
   `stdlib.h`.
-- Checks that `libft_malloc.so` exports `ft_malloc`, `ft_free`, `ft_realloc`,
-  `ft_calloc`, and `show_alloc_mem`.
+- Checks that `libft_malloc.so` exports `malloc`, `free`, `realloc`,
+  `show_alloc_mem`, and the direct `ft_*` test helpers.
+- Runs the libc reference binary again with the custom allocator preloaded.
 - Compiles the same tests again with `USE_FT_ALLOC`, so the allocation calls use
   `ft_malloc`, `ft_free`, `ft_realloc`, and `ft_calloc`.
 - Runs the project allocator binary and compares the same allocation behavior.
@@ -226,6 +229,9 @@ The current tests cover:
 - `calloc` multiplication overflow detection.
 - Large allocation writes at the beginning, middle, and end of the block.
 - `show_alloc_mem` output for TINY, SMALL, LARGE, allocation sizes, and total.
+- Standard-symbol preload/insertion.
+- Invalid pointer free and double-free smoke cases.
+- 100+ TINY and 100+ SMALL allocation capacity.
 
 Current expected result:
 
@@ -241,6 +247,9 @@ SUCCESS: malloc/free/realloc/calloc: 952/952 checks passed
 SUCCESS: libc reference run
 
 == exported allocator symbols ==
+found symbol: malloc
+found symbol: free
+found symbol: realloc
 found symbol: ft_malloc
 found symbol: ft_free
 found symbol: ft_realloc
@@ -248,8 +257,12 @@ found symbol: ft_calloc
 found symbol: show_alloc_mem
 SUCCESS: exported allocator symbols
 
+== standard malloc/free/realloc preload run ==
+SUCCESS: malloc/free/realloc/calloc: 952/952 checks passed
+SUCCESS: standard malloc/free/realloc preload run
+
 == ft allocator and show_alloc_mem comparison run ==
-SUCCESS: ft_malloc/ft_free/ft_realloc/ft_calloc: 963/963 checks passed
+SUCCESS: ft_malloc/ft_free/ft_realloc/ft_calloc: 1220/1220 checks passed
 SUCCESS: ft allocator and show_alloc_mem comparison run
 
 SUCCESS: all test suites passed
@@ -259,18 +272,11 @@ The generated test binaries are ignored by Git through `.gitignore`.
 
 ## Implementation Checklist
 
-Before the project can be considered usable, the following items should be
-completed:
+Remaining work:
 
-- Add full Makefile rules for `all`, `clean`, `fclean`, and `re`.
-- Compile the shared object with `-shared` and position-independent code.
-- Fix header includes and type declarations in `includes/malloc.h`.
-- Define missing allocation type constants such as `TINY`, `SMALL`, and
-  `LARGE`.
-- Resolve duplicate and inconsistent macros.
-- Implement tiny, small, and large allocation paths.
-- Export standard `malloc`, `free`, and `realloc` symbols.
-- Expand tests as new allocator APIs are added.
+- Run `norminette` and fix any Norm violations.
+- Continue hardening fragmentation, invalid pointer, and multithreaded cases.
+- Add optional bonus features only after the mandatory behavior is stable.
 
 ## Useful Commands
 
