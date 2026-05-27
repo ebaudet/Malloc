@@ -13,11 +13,11 @@
 #include "malloc.h"
 #include <sys/mman.h>
 
-t_alloc	*malloc_find_alloc(void *ptr)
+t_alloc		*malloc_find_alloc(void *ptr)
 {
-	t_zone	*zone;
-	t_alloc	*block;
-	void	*data;
+	t_zone		*zone;
+	t_alloc		*block;
+	void		*data;
 
 	if (!ptr)
 		return (NULL);
@@ -37,10 +37,10 @@ t_alloc	*malloc_find_alloc(void *ptr)
 	return (NULL);
 }
 
-static void	remove_zone(t_zone *zone)
+static void		remove_zone(t_zone *zone)
 {
-	t_zone	**head;
-	t_zone	*current;
+	t_zone		**head;
+	t_zone		*current;
 
 	head = malloc_zones();
 	if (*head == zone)
@@ -55,10 +55,10 @@ static void	remove_zone(t_zone *zone)
 		current->next = zone->next;
 }
 
-void	malloc_free_unlocked(void *ptr)
+void			malloc_free_unlocked(void *ptr)
 {
-	t_alloc	*block;
-	t_zone	*zone;
+	t_alloc		*block;
+	t_zone		*zone;
 
 	block = malloc_find_alloc(ptr);
 	if (!block || block->free)
@@ -74,14 +74,14 @@ void	malloc_free_unlocked(void *ptr)
 	block->free = 1;
 }
 
-void	ft_free(void *ptr)
+void			ft_free(void *ptr)
 {
 	malloc_lock();
 	malloc_free_unlocked(ptr);
 	malloc_unlock();
 }
 
-void	free(void *ptr)
+void			free(void *ptr)
 {
 	ft_free(ptr);
 }

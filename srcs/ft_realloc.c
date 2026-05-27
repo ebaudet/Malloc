@@ -19,10 +19,10 @@ static size_t	realloc_copy_size(t_alloc *block, size_t size)
 	return (size);
 }
 
-static void	*realloc_locked(void *ptr, size_t size)
+static void		*realloc_locked(void *ptr, size_t size)
 {
-	t_alloc	*block;
-	void	*new_ptr;
+	t_alloc		*block;
+	void		*new_ptr;
 
 	block = malloc_find_alloc(ptr);
 	if (!block || block->free)
@@ -40,7 +40,7 @@ static void	*realloc_locked(void *ptr, size_t size)
 	return (new_ptr);
 }
 
-void	*ft_realloc(void *ptr, size_t size)
+void		*ft_realloc(void *ptr, size_t size)
 {
 	void	*new_ptr;
 
@@ -57,7 +57,7 @@ void	*ft_realloc(void *ptr, size_t size)
 	return (new_ptr);
 }
 
-void	*realloc(void *ptr, size_t size)
+void		*realloc(void *ptr, size_t size)
 {
 	return (ft_realloc(ptr, size));
 }

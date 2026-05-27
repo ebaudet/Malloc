@@ -1,28 +1,31 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ft_calloc.c                                        :+:      :+:    :+:   */
+/*   malloc_state.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: ebaudet <ebaudet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/27 19:45:00 by ebaudet           #+#    #+#             */
-/*   Updated: 2026/05/27 20:30:00 by ebaudet          ###   ########.fr       */
+/*   Created: 2026/05/27 21:20:00 by ebaudet           #+#    #+#             */
+/*   Updated: 2026/05/27 21:20:00 by ebaudet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "malloc.h"
 
-void	*ft_calloc(size_t count, size_t size)
-{
-	void		*ptr;
-	size_t		total;
+static t_zone			*g_zones = NULL;
+static pthread_mutex_t	g_malloc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-	if (size != 0 && count > ((size_t) - 1 / size))
-		return (NULL);
-	total = count * size;
-	ptr = ft_malloc(total);
-	if (!ptr)
-		return (NULL);
-	malloc_bzero(ptr, total);
-	return (ptr);
+void					malloc_lock(void)
+{
+	pthread_mutex_lock(&g_malloc_mutex);
+}
+
+void					malloc_unlock(void)
+{
+	pthread_mutex_unlock(&g_malloc_mutex);
+}
+
+t_zone				**malloc_zones(void)
+{
+	return (&g_zones);
 }

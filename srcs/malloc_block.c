@@ -1,28 +1,22 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ft_calloc.c                                        :+:      :+:    :+:   */
+/*   malloc_block.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: ebaudet <ebaudet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/05/27 19:45:00 by ebaudet           #+#    #+#             */
-/*   Updated: 2026/05/27 20:30:00 by ebaudet          ###   ########.fr       */
+/*   Created: 2026/05/27 21:35:00 by ebaudet           #+#    #+#             */
+/*   Updated: 2026/05/27 21:35:00 by ebaudet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "malloc.h"
 
-void	*ft_calloc(size_t count, size_t size)
+void	malloc_init_block(t_zone *zone, t_alloc *block, size_t slot)
 {
-	void		*ptr;
-	size_t		total;
-
-	if (size != 0 && count > ((size_t) - 1 / size))
-		return (NULL);
-	total = count * size;
-	ptr = ft_malloc(total);
-	if (!ptr)
-		return (NULL);
-	malloc_bzero(ptr, total);
-	return (ptr);
+	block->size = 0;
+	block->capacity = slot;
+	block->free = 1;
+	block->zone = zone;
+	block->next = NULL;
 }
