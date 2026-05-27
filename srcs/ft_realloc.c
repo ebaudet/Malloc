@@ -12,11 +12,37 @@
 
 #include "malloc.h"
 
-void	*ft_realloc(void *ptr, size_t size)
+static size_t	realloc_copy_size(t_alloc *block, size_t size)
+{
+	if (block->size < size)
+		return (block->size);
+	return (size);
+}
+
+static void	*realloc_locked(void *ptr, size_t size)
 {
 	t_alloc	*block;
 	void	*new_ptr;
-	size_t	copy_size;
+
+	block = malloc_find_alloc(ptr);
+	if (!block || block->free)
+		return (NULL);
+	if (size <= block->capacity)
+	{
+		block->size = size;
+		return (ptr);
+	}
+	new_ptr = malloc_alloc(size);
+	if (!new_ptr)
+		return (NULL);
+	malloc_copy(new_ptr, ptr, realloc_copy_size(block, size));
+	malloc_free_unlocked(ptr);
+	return (new_ptr);
+}
+
+void	*ft_realloc(void *ptr, size_t size)
+{
+	void	*new_ptr;
 
 	if (!ptr)
 		return (ft_malloc(size));
@@ -26,29 +52,7 @@ void	*ft_realloc(void *ptr, size_t size)
 		return (NULL);
 	}
 	malloc_lock();
-	block = malloc_find_alloc(ptr);
-	if (!block || block->free)
-	{
-		malloc_unlock();
-		return (NULL);
-	}
-	if (size <= block->capacity)
-	{
-		block->size = size;
-		malloc_unlock();
-		return (ptr);
-	}
-	new_ptr = malloc_alloc(size);
-	if (!new_ptr)
-	{
-		malloc_unlock();
-		return (NULL);
-	}
-	copy_size = block->size;
-	if (copy_size > size)
-		copy_size = size;
-	malloc_copy(new_ptr, ptr, copy_size);
-	malloc_free_unlocked(ptr);
+	new_ptr = realloc_locked(ptr, size);
 	malloc_unlock();
 	return (new_ptr);
 }

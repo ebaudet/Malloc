@@ -114,6 +114,15 @@ static void	insert_zone(t_zone *zone)
 	current->next = zone;
 }
 
+static void	init_block(t_zone *zone, t_alloc *block, size_t slot)
+{
+	block->size = 0;
+	block->capacity = slot;
+	block->free = 1;
+	block->zone = zone;
+	block->next = NULL;
+}
+
 static void	init_fixed_zone(t_zone *zone, size_t type)
 {
 	t_alloc	*block;
@@ -129,11 +138,7 @@ static void	init_fixed_zone(t_zone *zone, size_t type)
 	while (i < MIN_ZONE_ALLOCS)
 	{
 		block = (t_alloc *)cursor;
-		block->size = 0;
-		block->capacity = slot;
-		block->free = 1;
-		block->zone = zone;
-		block->next = NULL;
+		init_block(zone, block, slot);
 		if (!zone->allocs)
 			zone->allocs = block;
 		else
@@ -144,14 +149,28 @@ static void	init_fixed_zone(t_zone *zone, size_t type)
 	}
 }
 
+static size_t	large_zone_size(size_t requested)
+{
+	return (malloc_page_align(sizeof(t_zone) + sizeof(t_alloc)
+			+ malloc_align(requested)));
+}
+
+static void	init_large_zone(t_zone *zone, size_t requested)
+{
+	zone->allocs = (t_alloc *)((char *)zone + sizeof(t_zone));
+	zone->allocs->size = requested;
+	zone->allocs->capacity = requested;
+	zone->allocs->free = 0;
+	zone->allocs->zone = zone;
+}
+
 static t_zone	*new_zone(size_t type, size_t requested)
 {
 	t_zone	*zone;
 	size_t	total;
 
 	if (type == LARGE)
-		total = malloc_page_align(sizeof(t_zone) + sizeof(t_alloc)
-				+ malloc_align(requested));
+		total = large_zone_size(requested);
 	else
 		total = malloc_zone_size(type);
 	zone = mmap(0, total, PROT_READ | PROT_WRITE,
@@ -162,13 +181,7 @@ static t_zone	*new_zone(size_t type, size_t requested)
 	zone->type = type;
 	zone->total = total;
 	if (type == LARGE)
-	{
-		zone->allocs = (t_alloc *)((char *)zone + sizeof(t_zone));
-		zone->allocs->size = requested;
-		zone->allocs->capacity = requested;
-		zone->allocs->free = 0;
-		zone->allocs->zone = zone;
-	}
+		init_large_zone(zone, requested);
 	else
 		init_fixed_zone(zone, type);
 	insert_zone(zone);
@@ -207,22 +220,21 @@ static size_t	zone_type_for_size(size_t size)
 	return (LARGE);
 }
 
-void	*malloc_alloc(size_t size)
+static void	*alloc_large(size_t size)
+{
+	t_zone	*zone;
+
+	zone = new_zone(LARGE, size);
+	if (!zone)
+		return (NULL);
+	return ((char *)zone->allocs + sizeof(t_alloc));
+}
+
+static void	*alloc_from_zone(size_t size, size_t type)
 {
 	t_alloc	*block;
 	t_zone	*zone;
-	size_t	type;
 
-	if (size == 0)
-		return (NULL);
-	type = zone_type_for_size(size);
-	if (type == LARGE)
-	{
-		zone = new_zone(LARGE, size);
-		if (!zone)
-			return (NULL);
-		return ((char *)zone->allocs + sizeof(t_alloc));
-	}
 	block = find_free_block(type);
 	if (!block)
 	{
@@ -236,6 +248,18 @@ void	*malloc_alloc(size_t size)
 	block->size = size;
 	block->free = 0;
 	return ((char *)block + sizeof(t_alloc));
+}
+
+void	*malloc_alloc(size_t size)
+{
+	size_t	type;
+
+	if (size == 0)
+		return (NULL);
+	type = zone_type_for_size(size);
+	if (type == LARGE)
+		return (alloc_large(size));
+	return (alloc_from_zone(size, type));
 }
 
 void	*ft_malloc(size_t size)
